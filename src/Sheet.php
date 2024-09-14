@@ -28,11 +28,13 @@ use Maatwebsite\Excel\Concerns\WithCustomChunkSize;
 use Maatwebsite\Excel\Concerns\WithCustomStartCell;
 use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
 use Maatwebsite\Excel\Concerns\WithDrawings;
+use Maatwebsite\Excel\Concerns\WithDynamicLimit;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithFormatData;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMappedCells;
 use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithProgress;
 use Maatwebsite\Excel\Concerns\WithProgressBar;
 use Maatwebsite\Excel\Concerns\WithStrictNullComparison;
 use Maatwebsite\Excel\Concerns\WithStyles;
@@ -244,8 +246,14 @@ class Sheet
 
         $this->raise(new BeforeSheet($this, $import));
 
+        $highestRow = $this->worksheet->getHighestRow();
+
         if ($import instanceof WithProgressBar && !$import instanceof WithChunkReading) {
-            $import->getConsoleOutput()->progressStart($this->worksheet->getHighestRow());
+            $import->getConsoleOutput()->progressStart($highestRow);
+        }
+
+        if ($import instanceof WithProgress && !$import instanceof WithChunkReading) {
+            $import->progressStart($highestRow);
         }
 
         $calculatesFormulas = $import instanceof WithCalculatedFormulas;
@@ -294,7 +302,12 @@ class Sheet
 
                 $rowArray                    = $sheetRow->toArray(null, $import instanceof WithCalculatedFormulas, $import instanceof WithFormatData, $endColumn);
                 $rowIsEmptyAccordingToImport = $import instanceof SkipsEmptyRows && method_exists($import, 'isEmptyWhen') && $import->isEmptyWhen($rowArray);
-                if (!$import instanceof SkipsEmptyRows || ($import instanceof SkipsEmptyRows && (!$rowIsEmptyAccordingToImport && !$sheetRow->isEmpty($calculatesFormulas)))) {
+                $shouldEndAccordingToImport = $import instanceof WithDynamicLimit && $import->hasReachedLimit($rowArray);
+                if (
+                    !$import instanceof SkipsEmptyRows ||
+                    ($import instanceof SkipsEmptyRows && (!$rowIsEmptyAccordingToImport && !$sheetRow->isEmpty($calculatesFormulas))) ||
+                    ($import instanceof WithDynamicLimit && !$shouldEndAccordingToImport)
+                ) {
                     if ($import instanceof WithValidation) {
                         $toValidate = [$sheetRow->getIndex() => $rowArray];
 
@@ -311,6 +324,10 @@ class Sheet
                 if ($import instanceof WithProgressBar) {
                     $import->getConsoleOutput()->progressAdvance();
                 }
+
+                if($import instanceof WithProgress) {
+                    $import->progressAdvance();
+                }
             }
         }
 
@@ -318,6 +335,9 @@ class Sheet
 
         if ($import instanceof WithProgressBar && !$import instanceof WithChunkReading) {
             $import->getConsoleOutput()->progressFinish();
+        }
+        if ($import instanceof WithProgress && !$import instanceof WithChunkReading) {
+            $import->progressFinish();
         }
     }
 
@@ -354,6 +374,10 @@ class Sheet
                 continue;
             }
 
+            if($import instanceof WithDynamicLimit && $import->hasReachedLimit($row)) {
+                break;
+            }
+
             if ($import instanceof WithMapping) {
                 $row = $import->map($row);
             }
@@ -366,6 +390,10 @@ class Sheet
 
             if ($import instanceof WithProgressBar) {
                 $import->getConsoleOutput()->progressAdvance();
+            }
+
+            if($import instanceof WithProgress) {
+                $import->progressAdvance();
             }
         }
 
