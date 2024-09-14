@@ -302,7 +302,7 @@ class Sheet
 
                 $rowArray                    = $sheetRow->toArray(null, $import instanceof WithCalculatedFormulas, $import instanceof WithFormatData, $endColumn);
                 $rowIsEmptyAccordingToImport = $import instanceof SkipsEmptyRows && method_exists($import, 'isEmptyWhen') && $import->isEmptyWhen($rowArray);
-                $shouldEndAccordingToImport = $import instanceof WithDynamicLimit && $import->hasReachedLimit($rowArray);
+                $shouldEndAccordingToImport  = $import instanceof WithDynamicLimit && $import->hasReachedLimit($rowArray);
                 if (
                     !$import instanceof SkipsEmptyRows ||
                     ($import instanceof SkipsEmptyRows && (!$rowIsEmptyAccordingToImport && !$sheetRow->isEmpty($calculatesFormulas))) ||
@@ -325,7 +325,7 @@ class Sheet
                     $import->getConsoleOutput()->progressAdvance();
                 }
 
-                if($import instanceof WithProgress) {
+                if ($import instanceof WithProgress) {
                     $import->progressAdvance();
                 }
             }
@@ -374,7 +374,7 @@ class Sheet
                 continue;
             }
 
-            if($import instanceof WithDynamicLimit && $import->hasReachedLimit($row)) {
+            if ($import instanceof WithDynamicLimit && $import->hasReachedLimit($row)) {
                 break;
             }
 
@@ -392,7 +392,7 @@ class Sheet
                 $import->getConsoleOutput()->progressAdvance();
             }
 
-            if($import instanceof WithProgress) {
+            if ($import instanceof WithProgress) {
                 $import->progressAdvance();
             }
         }
