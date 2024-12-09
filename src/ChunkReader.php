@@ -13,6 +13,7 @@ use Maatwebsite\Excel\Concerns\ShouldQueueWithoutChain;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithLimit;
+use Maatwebsite\Excel\Concerns\WithProgress;
 use Maatwebsite\Excel\Concerns\WithProgressBar;
 use Maatwebsite\Excel\Files\TemporaryFile;
 use Maatwebsite\Excel\Imports\HeadingRowExtractor;
@@ -53,6 +54,10 @@ class ChunkReader
 
         if ($import instanceof WithProgressBar) {
             $import->getConsoleOutput()->progressStart(array_sum($totalRows));
+        }
+
+        if ($import instanceof WithProgress) {
+            $import->progressStart(array_sum($totalRows));
         }
 
         $jobs = new Collection();
@@ -115,6 +120,10 @@ class ChunkReader
 
         if ($import instanceof WithProgressBar) {
             $import->getConsoleOutput()->progressFinish();
+        }
+
+        if ($import instanceof WithProgress) {
+            $import->progressFinish();
         }
 
         unset($jobs);
